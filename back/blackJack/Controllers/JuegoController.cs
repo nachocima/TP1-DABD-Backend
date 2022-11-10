@@ -54,7 +54,7 @@ public class JuegoController: ControllerBase
 
     [HttpGet]
     [Route ("get/carta")]
-    public async Task<ActionResult<CartaRespuesta>> getCarta(int partida, int jugada, bool jugador){
+    public async Task<ActionResult<CartaRespuesta>> getCarta(int partida, int jugada, bool jugador, int mazos){
         try
         {
             var flag = false;
@@ -67,7 +67,7 @@ public class JuegoController: ControllerBase
 
                 var usadas = await _context.CartasUsadas.Where(x=> x.IdPartida == partida && x.IdCarta == index).ToListAsync();
 
-                if(usadas.Count >= 3){
+                if(usadas.Count >= mazos){
                     flag = false;
                 }
                 else{
@@ -118,36 +118,6 @@ public class JuegoController: ControllerBase
             return BadRequest(e.Message);
         }
     }
-
-    //Se utilizara en la trecera entrega
-    /*[HttpGet]
-    [Route ("get/cartasJugador")]
-     public async Task<ActionResult<List<CartaRespuesta>>> getCartasJugador(int partida, int jugada){
-        try
-        {
-            var detalle = await _context.DetallesJugadors.Where(x=> x.IdJugada == jugada).ToListAsync();
-            var result = new List<CartaRespuesta>();
-
-            foreach (var d in detalle)
-            {
-                var carta = await _context.Cartas.FindAsync(d.IdCarta);
-                var cartaR = new CartaRespuesta{
-                    Id = carta.Id,
-                    Numero = carta.Numero,
-                    Palo = carta.Palo,
-                    Valor = carta.Valor
-                };
-                result.Add(cartaR);
-            }
-            
-            return Ok(result);
-        }
-        catch (Exception e)
-        {
-            return BadRequest(e.Message);
-        }
-     }*/
-    
 
     [HttpGet]
     [Route ("get/cartasUsadas")]
@@ -238,6 +208,57 @@ public class JuegoController: ControllerBase
     }
 
 
-    
+    [HttpPut]
+    [Route("put/jugada")]
+     public async Task<ActionResult<JugadaPutREspuesta>> putJugada(JugadaComando cmd ){
+        try{
+            var jugada = await _context.Jugadas.Where(j=> j.Id == cmd.Id).FirstAsync();
+
+            if(jugada == null){
+                return BadRequest("No se ha encontrado la jugada");
+            }
+            
+//VALIDAR JUGADA
+            var result = new JugadaPutREspuesta();
+            var ganador = "";
+
+            if(cmd.PuntosJugador == 21){
+                result.Ganador = "Jugador gana con 21";
+                ganador = "jugador";
+            }
+            else if(cmd.PuntosJugador > 21 && cmd.PuntosCroupier == 0){
+                result.Ganador = "Croupier gana, el jugador se ha pasado con " + cmd.PuntosJugador;
+                ganador = "croupier";
+            }
+            else if(cmd.PuntosCroupier > 21 && cmd.PuntosJugador < 22){
+                result.Ganador = "Jugador gana con " + cmd.PuntosJugador + ", el croupier se ha pasado con " + cmd.PuntosCroupier;
+                 ganador = "jugador";
+            }
+            else if(cmd.PuntosCroupier > cmd.PuntosJugador && cmd.PuntosCroupier < 22){
+                result.Ganador = "Croupier gana con " + cmd.PuntosCroupier + ", Jugador: " + cmd.PuntosJugador;
+                ganador = "croupier";
+            }
+            else if(cmd.PuntosCroupier < cmd.PuntosJugador && cmd.PuntosJugador < 22){
+                result.Ganador = "Jugador gana con " + cmd.PuntosJugador + ", Croupier: " + cmd.PuntosCroupier;
+                 ganador = "jugador";
+            }
+            else if(cmd.PuntosJugador != 21 && cmd.PuntosCroupier == cmd.PuntosJugador){
+                result.Ganador = "Empate";
+                ganador = "empate";
+            }
+
+            jugada.PuntosCroupier = cmd.PuntosCroupier;
+            jugada.PuntosJugador = cmd.PuntosJugador;
+            jugada.Ganador = ganador;
+
+            _context.Jugadas.Update(jugada);
+            await _context.SaveChangesAsync();
+
+            return Ok(result);
+        }
+        catch(Exception e){
+            return BadRequest(e.Message);
+        }
+     }
 
 }

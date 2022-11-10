@@ -141,15 +141,15 @@ namespace blackJack.Data
 
                 entity.Property(e => e.Id).HasColumnName("id");
 
-                entity.Property(e => e.Ganador)
-                    .HasMaxLength(60)
-                    .HasColumnName("ganador");
-
                 entity.Property(e => e.IdPartida).HasColumnName("id_partida");
 
                 entity.Property(e => e.PuntosCroupier).HasColumnName("puntos_croupier");
 
                 entity.Property(e => e.PuntosJugador).HasColumnName("puntos_jugador");
+
+                entity.Property(e => e.Ganador)
+                    .HasMaxLength(60)
+                    .HasColumnName("ganador");
 
                 entity.HasOne(d => d.IdPartidaNavigation)
                     .WithMany(p => p.Jugada)
